@@ -200,3 +200,4 @@ cython_debug/
 # Project-specific files
 data/
 poetry.lock
+scripts/keep_collab_alive.py

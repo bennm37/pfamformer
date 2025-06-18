@@ -34,3 +34,5 @@ def compute_embeddings_folder(folder_name, results_folder):
 compute_embeddings_folder("./data/random_split/train", "./data/embeddings/train")
 compute_embeddings_folder("./data/random_split/test", "./data/embeddings/test")
 compute_embeddings_folder("./data/random_split/dev", "./data/embeddings/dev")
+
+
