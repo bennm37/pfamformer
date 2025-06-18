@@ -47,6 +47,34 @@ class LazyEmbeddingDataset(Dataset):
         file_idx = np.searchsorted(self.cum_lengths, idx, side='right') - 1
         local_idx = idx - self.cum_lengths[file_idx]
         arr = np.load(self.file_list[file_idx], mmap_mode='r')
-        embedding = torch.from_numpy(arr[local_idx].copy()[:,self.pooling])
+        embedding = torch.from_numpy(arr[local_idx].astype(np.float32)[:,self.pooling])
+        label_idx = self.label_indices[idx]
+        return embedding, label_idx
+    
+
+class EmbeddingDataset(Dataset):
+    def __init__(self, file_list, label_files, pooling="mean"):
+        self.file_list = file_list
+        try:
+            self.pooling = ["mean","max"].index(pooling)
+        except ValueError:
+            raise ValueError(f"Unknown value for pooling: {self.pooling}")
+        self.embeddings = np.concatenate([np.load(f) for f in file_list])
+        self.embeddings = self.embeddings[:,:,self.pooling]
+        self.length = self.embeddings.shape[0]
+        self.embeddings = torch.from_numpy(self.embeddings.astype(np.float32))
+        dfs = [pd.read_csv(f, header=None) for f in label_files]
+        labels = pd.concat(dfs, ignore_index=True)[0].tolist()
+
+        self.accessions = [val.split(".")[0][2:] for val in labels]
+        self.unique_labels = sorted(set(self.accessions))
+        self.label_to_idx = {l: i for i, l in enumerate(self.unique_labels)}
+        self.label_indices = [self.label_to_idx[a] for a in self.accessions]
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, idx):
+        embedding = self.embeddings[idx]
         label_idx = self.label_indices[idx]
         return embedding, label_idx
