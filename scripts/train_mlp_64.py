@@ -17,15 +17,15 @@ def create_pfam_64():
     nos, _ = zip(*sorted(grouped.items(), key=lambda x: x[1], reverse=True))
     top_64 = nos[:64]
     train_df_64 = train_df[train_df["accession_no"].isin(top_64)]
-    train_set = EmbeddingDataset(train_df_64)
+    train_set = EmbeddingDataset(train_df_64, f"data/embeddings/train")
     print(f"Loading dev ...")
     dev_df_64 = load(f"data/random_split/dev")
     dev_df_64 = dev_df_64[dev_df_64["accession_no"].isin(top_64)]
-    dev_set = EmbeddingDataset(dev_df_64)
+    dev_set = EmbeddingDataset(dev_df_64, f"data/embeddings/dev")
     print(f"Loading test ...")
     test_df_64 = load(f"data/random_split/test")
     test_df_64 = test_df_64[test_df_64["accession_no"].isin(top_64)]
-    test_set = EmbeddingDataset(test_df_64)
+    test_set = EmbeddingDataset(test_df_64, f"data/embeddings/test")
     return train_set, dev_set, test_set
 
 if __name__=="__main__":

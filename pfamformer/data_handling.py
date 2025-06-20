@@ -78,9 +78,10 @@ class LazyEmbeddingDataset(Dataset):
     
 
 class EmbeddingDataset(Dataset):
-    def __init__(self, df, pooling="mean"):
+    def __init__(self, df, embedding_folder, pooling="mean"):
         self.pooling_type = ["mean","max"].index(pooling)
-        self.embeddings = torch.from_numpy(get_embeddings(df.index)[:,:, self.pooling_type].astype(np.float32))
+        pattern = f"{embedding_folder}/*.npy"
+        self.embeddings = torch.from_numpy(get_embeddings(df.index, pattern)[:,:, self.pooling_type].astype(np.float32))
         self.length = self.embeddings.shape[0]
         self.accession_nos = df["accession_no"]
         self.unique_labels = sorted(set(self.accession_nos))
