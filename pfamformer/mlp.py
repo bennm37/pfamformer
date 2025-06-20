@@ -38,7 +38,7 @@ class MLPClassifier(nn.Module):
         self.to(device)
         optimizer = optim.Adam(self.parameters(), lr=lr)
         loss_fn = nn.CrossEntropyLoss()
-        metrics = []
+        self.metrics = pd.DataFrame(columns=["epoch","loss","accuracy","precision","recall","f1"])
         for epoch in range(epochs):
             print(f"Starting Epoch {epoch}/{epochs}")
             self.train()
@@ -61,9 +61,8 @@ class MLPClassifier(nn.Module):
             df = compute_metrics(all_labels, all_preds)
             df["epoch"] = epoch
             df["loss"] = epoch_loss
-            metrics.append(df)
+            self.metrics = pd.concat([self.metrics, df])
             self.log(df, epochs)
-        self.metrics = pd.concat(metrics)
         if save:
             self.save_model()
         return self.metrics

@@ -20,9 +20,9 @@ def test_lazy_embedding_dataset():
     label_files = sorted(glob.glob(os.path.join('data/random_split/test', 'data-0000*-of-00010')))
     dataset = LazyEmbeddingDataset(files, label_files)
     assert len(dataset) > 0
-    embedding, label_idx = dataset[0]
+    embedding, label_index = dataset[0]
     assert isinstance(embedding, torch.Tensor)
-    assert isinstance(label_idx, int)
+    assert isinstance(label_index, int)
     loader = DataLoader(dataset, batch_size=4, shuffle=False)
     batch = next(iter(loader))
     assert batch[0].shape == (4,960)

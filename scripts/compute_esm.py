@@ -10,7 +10,7 @@ CLIENT = ESMC.from_pretrained("esmc_300m").to("cpu") # need cuda on nemo gpus
 def compute_embeddings(df):
     n_rows = df.shape[0]
     embeddings = np.zeros((n_rows, 960, 2))
-    for i, sequence in enumerate(df["sequence"].values[:20]):
+    for i, sequence in enumerate(df["sequence"].values):
         if i%10==0:
             print(f"Starting Embedding {i}")
         protein = ESMProtein(sequence=sequence)
