@@ -75,7 +75,7 @@ class MLPClassifier(nn.Module):
             self.log(df, epochs)
             self.update_plot()
             if self.dev_dataloader is not None:
-                dev_df = self.evalute_dev()
+                dev_df = self.evaluate_test_set(self.dev_dataloader)
                 dev_df["epoch"] = epoch
                 self.dev_metrics = pd.concat([self.dev_metrics, dev_df])
                 print(f"Dev Metrics ...")
@@ -90,10 +90,10 @@ class MLPClassifier(nn.Module):
             self.save_model()
         return self.train_metrics
             
-    def evalute_dev(self):
+    def evaluate_test_set(self, dataloader):
         all_preds = []
         all_labels = []
-        for X, y in self.dev_dataloader:
+        for X, y in dataloader:
             X = X.to(self.device)
             y = y.to(self.device)
             logits = self(X)

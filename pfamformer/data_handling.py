@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, WeightedRandomSampler
 import pandas as pd
 import glob
 from tqdm import tqdm
@@ -45,6 +45,18 @@ def get_embeddings(index, pattern=f'data/embeddings/train/*.npy'):
         embeddings[i] = c_embeddings[local_index].astype(np.float32)
         prev_file_index = file_index
     return embeddings
+
+def get_weighted_sampler(df):
+    class_counts = df['accession_no'].value_counts()
+    class_weights = 1.0 / class_counts
+    sample_weights = df['accession_no'].map(class_weights).values
+    sampler = WeightedRandomSampler(
+        weights=sample_weights,
+        num_samples=len(sample_weights),
+        replacement=True
+    )
+    return sampler
+
 
 
 class LazyEmbeddingDataset(Dataset):

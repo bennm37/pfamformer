@@ -1,4 +1,4 @@
-from pfamformer.data_handling import EmbeddingDataset, clean_train, load
+from pfamformer.data_handling import EmbeddingDataset, clean_train, load, get_weighted_sampler
 from pfamformer.mlp import MLPClassifier
 from torch.utils.data import DataLoader
 import glob, os
