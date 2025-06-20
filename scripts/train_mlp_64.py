@@ -10,7 +10,7 @@ def create_set(set_type):
     labels = [os.path.join(f"data/random_split/{set_type}/{name}") for name in label_names]
     return LazyEmbeddingDataset(embeddings, labels)
 
-def create_pfam_64_small():
+def create_pfam_64():
     print(f"Loading train ...")
     train_df = clean_train(load(f"data/random_split/train"))
     grouped = train_df.groupby(by="accession_no").size()
@@ -30,6 +30,7 @@ def create_pfam_64_small():
 
 if __name__=="__main__":
     mlp = MLPClassifier(960, 64)
-    train_set, dev_set, test_set = create_pfam_64_small()
+    train_set, dev_set, test_set = create_pfam_64()
     train_batch = DataLoader(train_set, batch_size=128, shuffle=True)
-    mlp.train_model(train_batch, epochs=30, lr=1e-3)
+    dev_batch = DataLoader(train_set, batch_size=128, shuffle=True)
+    mlp.train_model(train_batch, dev_dataloader=dev_batch, epochs=30, lr=1e-3)

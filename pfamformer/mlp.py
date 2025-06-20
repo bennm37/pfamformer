@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
+import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -29,16 +29,24 @@ class MLPClassifier(nn.Module):
     def train_model(
         self,
         dataloader,
+        dev_dataloader=None,
         epochs=10,
         lr=1e-3,
+        patience=3,
         device='cpu',
         save=True,
     ):
         print(f"Started training.")
-        self.to(device)
+        self.device = device
+        self.to(self.device)
         optimizer = optim.Adam(self.parameters(), lr=lr)
         loss_fn = nn.CrossEntropyLoss()
-        self.metrics = pd.DataFrame(columns=["epoch","loss","accuracy","precision","recall","f1"])
+        self.train_metrics = pd.DataFrame(columns=["epoch","loss","accuracy","precision","recall","f1"])
+        self.dev_dataloader = dev_dataloader
+        if dev_dataloader is not None:
+            self.dev_metrics = pd.DataFrame(columns=["epoch", "accuracy","precision","recall","f1"])
+        early_counter = 0
+        prev_loss = np.inf
         for epoch in range(epochs):
             print(f"Starting Epoch {epoch}/{epochs}")
             self.train()
@@ -46,8 +54,8 @@ class MLPClassifier(nn.Module):
             all_preds = []
             all_labels = []
             for X, y in tqdm(dataloader):
-                X = X.to(device)
-                y = y.to(device)
+                X = X.to(self.device)
+                y = y.to(self.device)
                 optimizer.zero_grad()
                 logits = self(X)
                 loss = loss_fn(logits, y)
@@ -61,12 +69,40 @@ class MLPClassifier(nn.Module):
             df = compute_metrics(all_labels, all_preds)
             df["epoch"] = epoch
             df["loss"] = epoch_loss
-            self.metrics = pd.concat([self.metrics, df])
+            self.train_metrics = pd.concat([self.train_metrics, df])
+            print(f"Train Metrics ...")
+            print(f"Loss = {loss}")
             self.log(df, epochs)
+            self.update_plot()
+            if self.dev_dataloader is not None:
+                dev_df = self.evalute_dev()
+                dev_df["epoch"] = epoch
+                self.dev_metrics = pd.concat([self.dev_metrics, dev_df])
+                print(f"Dev Metrics ...")
+                self.log(dev_df, epochs)
+            if prev_loss < epoch_loss:
+                early_counter += 1
+            if early_counter >= patience:
+                print(f"Stopping Early at Epoch {epoch} due to early_counter exceeding patience {patience}.")
+                break
+            prev_loss = epoch_loss
         if save:
             self.save_model()
-        return self.metrics
-    
+        return self.train_metrics
+            
+    def evalute_dev(self):
+        all_preds = []
+        all_labels = []
+        for X, y in self.dev_dataloader:
+            X = X.to(self.device)
+            y = y.to(self.device)
+            logits = self(X)
+            preds = torch.argmax(logits, dim=1).cpu().numpy()
+            all_preds.extend(preds)
+            all_labels.extend(y.cpu().numpy())
+        df = compute_metrics(all_labels, all_preds)
+        return df
+
     def save_model(self, save_folder="data/trained"):
         dt = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         filename = f"{save_folder}/mlp_{dt}.pkl"
@@ -74,29 +110,28 @@ class MLPClassifier(nn.Module):
             pickle.dump(self, f)
 
 
-    def update_plot(self, metrics, losses, num_labels):
+    def update_plot(self):
+        mean_metrics = self.train_metrics.groupby("epoch").apply(np.mean, axis=0, include_groups=False)
+        std_metrics = self.train_metrics.groupby("epoch").apply(np.std, axis=0, include_groups=False)
+        epochs = self.train_metrics["epoch"].unique()
         if not hasattr(self, '_fig'):
-            self._fig, self._axs = plt.subplots(1, 4, figsize=(20, 4))
+            self._fig, self._axs = plt.subplots(2, 2, figsize=(6,6))
             self._lines = {}
-            for i, metric in enumerate(['precision', 'recall', 'f1']):
-                self._axs[i].set_title(f'{metric.capitalize()} per Class')
-                self._axs[i].set_xlabel('Epoch')
-                self._axs[i].set_ylabel(metric.capitalize())
-                for label in range(num_labels):
-                    (line,) = self._axs[i].plot([], [], label=f'Class {label}')
-                    self._lines[(metric, label)] = line
-                self._axs[i].legend()
-            self._axs[3].set_title('Training Loss')
-            self._axs[3].set_xlabel('Epoch')
-            self._axs[3].set_ylabel('Loss')
-            (self._loss_line,) = self._axs[3].plot([], [], label='Loss')
+            self._lines["loss"] = self._axs[0,0].plot(epochs, mean_metrics["loss"])[0]
             plt.tight_layout()
-            plt.ion()
-            plt.show()
+            plt.savefig(f"media")
+        else:
+            self._lines["loss"].set_data(epochs, mean_metrics["loss"])
+            self._axs[0,0].relim()
+            self._axs[0,0].autoscale_view()
+            self._fig.canvas.draw()
+            self._fig.canvas.flush_events()
+            plt.draw()
+
 
     def log(self, df, epochs):
-        print(f"Finished Epoch {df['epoch'].values[0]/epochs}")
-        for metric in ["accuracy","precision","recall","f1"]:
+        print(f"Finished Epoch {df['epoch'].values[0]}/{epochs}")
+        for metric in ["accuracy","precision","recall", "f1"]:
             print(f"{metric.capitalize()}: {df[metric].values.mean()} +- {df[metric].values.std()}")
 
     

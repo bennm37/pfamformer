@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset
 import pandas as pd
 import glob
-import tqdm
+from tqdm import tqdm
 
 def load(folder_name):
     """Load the chunked data."""
@@ -36,6 +36,7 @@ def get_embeddings(index, pattern=f'data/embeddings/train/*.npy'):
     cum_lengths = np.cumsum([0]+lengths)
     prev_file_index = -1
     embeddings = np.zeros((len(index), 960, 2))
+    print("Loading Embeddings ... ")
     for i, ind in enumerate(tqdm(index)):
         file_index = np.searchsorted(cum_lengths, ind, side='right') - 1
         local_index = ind - cum_lengths[file_index]
