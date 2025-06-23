@@ -12,6 +12,7 @@ from tqdm import tqdm
 class MLPClassifier(nn.Module):
     def __init__(self, embedding_size, num_labels, hidden_sizes=[]):
         super().__init__()
+        self.creation_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self.layers = []
         in_dim = embedding_size
         for h in hidden_sizes:
@@ -19,7 +20,6 @@ class MLPClassifier(nn.Module):
             self.layers.append(nn.ReLU())
             in_dim = h
         self.layers.append(nn.Linear(in_dim, num_labels))
-        # self.layers.append(nn.Softmax(dim=0))
         self.layers.append(nn.Sigmoid())
         self.model = nn.Sequential(*self.layers)
 
@@ -33,13 +33,14 @@ class MLPClassifier(nn.Module):
         epochs=10,
         lr=1e-3,
         patience=3,
+        weight_decay=1e-5,
         device='cpu',
         save=True,
     ):
         print(f"Started training.")
         self.device = device
         self.to(self.device)
-        optimizer = optim.Adam(self.parameters(), lr=lr)
+        optimizer = optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
         loss_fn = nn.CrossEntropyLoss()
         self.train_metrics = pd.DataFrame(columns=["epoch","loss","accuracy","precision","recall","f1"])
         self.dev_dataloader = dev_dataloader
@@ -104,8 +105,7 @@ class MLPClassifier(nn.Module):
         return df
 
     def save_model(self, save_folder="data/trained"):
-        dt = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"{save_folder}/mlp_{dt}.pkl"
+        filename = f"{save_folder}/mlp_{self.creation_time}.pkl"
         with open(filename, "wb") as f:
             pickle.dump(self, f)
 
@@ -119,7 +119,7 @@ class MLPClassifier(nn.Module):
             self._lines = {}
             self._lines["loss"] = self._axs[0,0].plot(epochs, mean_metrics["loss"])[0]
             plt.tight_layout()
-            plt.savefig(f"media")
+            plt.savefig(f"plots/loss_{self.creation_time}.pdf")
         else:
             self._lines["loss"].set_data(epochs, mean_metrics["loss"])
             self._axs[0,0].relim()
