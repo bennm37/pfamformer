@@ -74,7 +74,6 @@ class MLPClassifier(nn.Module):
             print(f"Train Metrics ...")
             print(f"Loss = {loss}")
             self.log(df, epochs)
-            self.update_plot()
             if self.dev_dataloader is not None:
                 dev_df = self.evaluate_test_set(self.dev_dataloader)
                 dev_df["epoch"] = epoch
