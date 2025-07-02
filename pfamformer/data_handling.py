@@ -66,8 +66,8 @@ class EmbeddingDataset(Dataset):
         self.embeddings = torch.from_numpy(get_embeddings(df.index, pattern)[:,:, self.pooling_type].astype(np.float32))
         self.length = self.embeddings.shape[0]
         self.accession_nos = df["accession_no"]
+        self.unique_labels = sorted(set(self.accession_nos))
         if label_to_index is None:
-            self.unique_labels = sorted(set(self.accession_nos))
             self.label_to_index = {l: i for i, l in enumerate(self.unique_labels)}
         else:
             self.label_to_index = label_to_index

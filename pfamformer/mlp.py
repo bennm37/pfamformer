@@ -20,7 +20,6 @@ class MLPClassifier(nn.Module):
             self.layers.append(nn.ReLU())
             in_dim = h
         self.layers.append(nn.Linear(in_dim, num_labels))
-        self.layers.append(nn.Softmax())
         self.model = nn.Sequential(*self.layers)
 
     def forward(self, x):
@@ -38,6 +37,7 @@ class MLPClassifier(nn.Module):
         save=True,
     ):
         print(f"Started training.")
+        self.label_to_index = dataloader.dataset.label_to_index
         self.device = device
         self.to(self.device)
         optimizer = optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
