@@ -20,7 +20,7 @@ class MLPClassifier(nn.Module):
             self.layers.append(nn.ReLU())
             in_dim = h
         self.layers.append(nn.Linear(in_dim, num_labels))
-        self.layers.append(nn.Sigmoid())
+        self.layers.append(nn.Softmax())
         self.model = nn.Sequential(*self.layers)
 
     def forward(self, x):

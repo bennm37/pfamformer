@@ -19,14 +19,15 @@ def create_pfam_subset(n=64, data="data"):
     top_n = nos[:n]
     train_df_n = train_df[train_df["accession_no"].isin(top_n)]
     train_set = EmbeddingDataset(train_df_n, f"{data}/embeddings/train")
+    label_to_index = train_set.label_to_index
     print(f"Loading dev ...")
     dev_df_n = load(f"{data}/random_split/dev")
     dev_df_n = dev_df_n[dev_df_n["accession_no"].isin(top_n)]
-    dev_set = EmbeddingDataset(dev_df_n, f"{data}/embeddings/dev")
+    dev_set = EmbeddingDataset(dev_df_n, f"{data}/embeddings/dev", label_to_index=label_to_index)
     print(f"Loading test ...")
     test_df_n = load(f"{data}/random_split/test")
     test_df_n = test_df_n[test_df_n["accession_no"].isin(top_n)]
-    test_set = EmbeddingDataset(test_df_n, f"{data}/embeddings/test")
+    test_set = EmbeddingDataset(test_df_n, f"{data}/embeddings/test", label_to_index=label_to_index)
     return train_set, dev_set, test_set
 
 def evaluate_trained(model_path):

@@ -59,45 +59,18 @@ def get_weighted_sampler(df):
 
 
 
-class LazyEmbeddingDataset(Dataset):
-    def __init__(self, file_list, label_files, pooling="max"):
-        self.file_list = file_list
-        self.lengths = []
-        self.lengths = get_lengths(self.file_list)
-        self.cum_lengths = np.cumsum([0] + self.lengths)
-        dfs = [pd.read_csv(f, header=None) for f in label_files]
-        labels = pd.concat(dfs, ignore_index=True)[0].tolist()
-        try:
-            self.pooling = ["mean","max"].index(pooling)
-        except ValueError:
-            raise ValueError(f"Unknown value for pooling: {self.pooling}")
-        self.accessions = [val.split(".")[0][2:] for val in labels]
-        self.unique_labels = sorted(set(self.accessions))
-        self.label_to_index = {l: i for i, l in enumerate(self.unique_labels)}
-        self.label_indices = [self.label_to_index[a] for a in self.accessions]
-
-    def __len__(self):
-        return self.cum_lengths[-1]
-
-    def __getitem__(self, index):
-        file_index = np.searchsorted(self.cum_lengths, index, side='right') - 1
-        local_index = index - self.cum_lengths[file_index]
-        arr = np.load(self.file_list[file_index], mmap_mode='r')
-        embedding = torch.from_numpy(arr[local_index].astype(np.float32)[:,self.pooling])
-        # from profiling, 
-        label_index = self.label_indices[index]
-        return embedding, label_index
-    
-
 class EmbeddingDataset(Dataset):
-    def __init__(self, df, embedding_folder, pooling="mean"):
+    def __init__(self, df, embedding_folder, pooling="mean", label_to_index=None):
         self.pooling_type = ["mean","max"].index(pooling)
         pattern = f"{embedding_folder}/*.npy"
         self.embeddings = torch.from_numpy(get_embeddings(df.index, pattern)[:,:, self.pooling_type].astype(np.float32))
         self.length = self.embeddings.shape[0]
         self.accession_nos = df["accession_no"]
-        self.unique_labels = sorted(set(self.accession_nos))
-        self.label_to_index = {l: i for i, l in enumerate(self.unique_labels)}
+        if label_to_index is None:
+            self.unique_labels = sorted(set(self.accession_nos))
+            self.label_to_index = {l: i for i, l in enumerate(self.unique_labels)}
+        else:
+            self.label_to_index = label_to_index
         self.label_indices = torch.tensor([self.label_to_index[a] for a in self.accession_nos])
 
     def __len__(self):
